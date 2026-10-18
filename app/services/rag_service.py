@@ -14,7 +14,6 @@ import pdfplumber
 import docx
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import SentenceTransformerEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain_groq import ChatGroq
 from langchain.chains import RetrievalQA
@@ -90,12 +89,32 @@ Question:
 Answer:"""
 
 def get_embedding_function():
-    """Return a lazily-initialized SentenceTransformers embedding function."""
+    """
+    Return a lazily-initialized embedding function.
+
+    Default backend "fastembed" runs the same all-MiniLM-L6-v2 model through
+    ONNX Runtime with no PyTorch, which fits in Render's 512MB free tier
+    (loading PyTorch + SentenceTransformers there got the worker OOM-killed).
+    Set EMBEDDING_BACKEND=sentence-transformers to use the original backend
+    (requires `pip install sentence-transformers`; needs much more RAM).
+    """
     global _embedding_function
     if _embedding_function is None:
-        _embedding_function = SentenceTransformerEmbeddings(
-            model_name=Config.EMBEDDING_MODEL_NAME
-        )
+        name = Config.EMBEDDING_MODEL_NAME
+        if Config.EMBEDDING_BACKEND == "sentence-transformers":
+            from langchain_community.embeddings import SentenceTransformerEmbeddings
+
+            _embedding_function = SentenceTransformerEmbeddings(model_name=name)
+        else:
+            from langchain_community.embeddings import FastEmbedEmbeddings
+
+            if "/" not in name:
+                name = "sentence-transformers/" + name
+            _embedding_function = FastEmbedEmbeddings(
+                model_name=name,
+                cache_dir=os.path.join(Config.MODEL_CACHE_DIR, "fastembed"),
+                threads=1,
+            )
     return _embedding_function
 
 
@@ -181,9 +200,11 @@ def _classify_groq_error(exc):
     ):
         return GROQ_ERROR_INVALID_KEY
 
-    if status_code == 429 or any(
+    if status_code in (413, 429) or any(
         k in text
         for k in (
+            "request too large",
+            "tokens per minute",
             "rate_limit",
             "rate limit",
             "too many requests",
@@ -233,7 +254,14 @@ def _classify_groq_error(exc):
 
 def _friendly_groq_message(exc):
     """Map an exception to the user-facing message for its category."""
-    return GROQ_FRIENDLY_MESSAGES[_classify_groq_error(exc)]
+    category = _classify_groq_error(exc)
+    message = GROQ_FRIENDLY_MESSAGES[category]
+    if category == GROQ_ERROR_UNKNOWN and exc is not None:
+        # Surface the real reason so unexpected failures can be diagnosed
+        # (Groq SDK errors never contain the API key).
+        detail = " ".join(str(exc).split())[:200]
+        message += f" (Details: {type(exc).__name__}: {detail})"
+    return message
 
 
 def _model_candidates(primary):

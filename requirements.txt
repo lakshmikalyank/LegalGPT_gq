@@ -21,7 +21,8 @@ langchain-groq==0.3.0
 
 # --- Vector store & embeddings ---
 chromadb==1.0.15
-sentence-transformers==5.0.0
+# Lightweight ONNX embeddings (no PyTorch) - same all-MiniLM-L6-v2 model.
+fastembed>=0.5.1,<0.8
 
 # --- Document processing ---
 reportlab==4.4.2
@@ -30,11 +31,7 @@ python-docx==1.2.0
 pypdf==5.7.0
 pymupdf==1.24.14
 
-# --- OCR ---
-# CPU-only PyTorch wheels (the default PyPI wheel bundles CUDA and is
-# multiple GB, far too large for Render's build/runtime limits).
---extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.7.1
+# --- OCR (Groq vision; no local ML) ---
 # EasyOCR removed: it exceeded Render free-tier memory. OCR now uses a
 # Groq vision model (OCR_BACKEND=groq). To use local OCR: pip install easyocr
 # and set OCR_BACKEND=easyocr.

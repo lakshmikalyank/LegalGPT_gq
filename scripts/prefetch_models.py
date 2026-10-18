@@ -11,9 +11,9 @@ from config import Config  # noqa: E402  (also sets HF/ST cache env vars)
 
 def main():
     try:
-        from sentence_transformers import SentenceTransformer
+        from app.services.rag_service import get_embedding_function
 
-        SentenceTransformer(Config.EMBEDDING_MODEL_NAME)
+        get_embedding_function().embed_query("warm up")
         print("Embedding model ready.")
     except Exception as exc:
         print(f"WARNING: embedding model prefetch skipped: {exc}")

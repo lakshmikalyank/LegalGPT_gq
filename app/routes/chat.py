@@ -362,12 +362,18 @@ def analyze_document(document_id):
                 "message": "No indexed content was found for this document.",
             }
         ), 400
-    except Exception:
+    except rag_service.GroqServiceError as exc:
+        # Carries a specific, user-friendly reason (invalid key, rate limit,
+        # model unavailable, network error) from the Groq integration.
+        logger.error("Groq error during analysis for document_id=%s: %s", document_id, exc)
+        return jsonify({"success": False, "message": str(exc)}), 502
+    except Exception as exc:
         logger.exception("Document analysis failed for document_id=%s", document_id)
         return jsonify(
             {
                 "success": False,
-                "message": "Analysis failed. Please check your Groq API key and try again.",
+                "message": "Analysis failed (%s). Check the server log for details."
+                % type(exc).__name__,
             }
         ), 500
 

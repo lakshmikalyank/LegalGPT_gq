@@ -161,6 +161,7 @@ class Config:
     # is roughly 5-6x larger (~470MB) and may not fit safely alongside
     # everything else on a 512MB instance — test carefully before
     # relying on it in production on the free tier.
+    EMBEDDING_BACKEND = os.environ.get("EMBEDDING_BACKEND", "fastembed").lower()
     EMBEDDING_MODEL_NAME = os.environ.get(
         "EMBEDDING_MODEL_NAME", "all-MiniLM-L6-v2"
     )
