@@ -414,6 +414,11 @@ def extract_text_from_pdf(file_path):
             page_text = page.extract_text()
             if page_text:
                 text_parts.append(page_text)
+            # Free per-page caches so memory doesn't grow with page count.
+            try:
+                page.flush_cache()
+            except Exception:
+                pass
     extracted = "\n".join(text_parts)
 
     # Heuristic: a PDF with real, extractable text almost always yields
@@ -667,7 +672,15 @@ def index_document(document_id, user_id, text):
     ids = [f"doc{document_id}_chunk{i}" for i in range(len(chunks))]
 
     vectorstore = get_vectorstore()
-    vectorstore.add_texts(texts=chunks, metadatas=metadatas, ids=ids)
+    # Embed in small batches to keep peak memory low (one big batch through
+    # the ONNX model is what pushes a 512MB instance over its limit).
+    batch = 16
+    for start in range(0, len(chunks), batch):
+        vectorstore.add_texts(
+            texts=chunks[start:start + batch],
+            metadatas=metadatas[start:start + batch],
+            ids=ids[start:start + batch],
+        )
 
     # Explicitly persist to disk. Depending on the installed chromadb/
     # langchain_community version, writes may otherwise only live in
