@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile - LegalGPT{% endblock %}
+
+{% block page_title %}My Profile{% endblock %}
+
+{% block content %}
+
+<div class="row">
+    <div class="col-lg-5">
+        <div class="card-plain p-4 mb-4">
+            <h6 class="mb-3">Account Details</h6>
+
+            <div class="d-flex align-items-center mb-3">
+                <div class="stat-icon icon-blue me-3" style="width:52px;height:52px;font-size:1.4rem;">
+                    <i class="bi bi-person-circle"></i>
+                </div>
+                <div>
+                    <div class="fw-semibold">{{ current_user.username }}</div>
+                    <div class="text-muted small">{{ current_user.email }}</div>
+                </div>
+            </div>
+
+            <table class="table table-borderless mb-0 small">
+                <tbody>
+                    <tr>
+                        <td class="text-muted">Role</td>
+                        <td>
+                            {% if current_user.is_admin %}
+                            <span class="badge bg-danger">Admin</span>
+                            {% else %}
+                            <span class="badge bg-secondary">User</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Member Since</td>
+                        <td>{{ current_user.created_at.strftime('%d %B %Y') }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Documents Uploaded</td>
+                        <td>{{ current_user.documents | length }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Documents Generated</td>
+                        <td>{{ current_user.generated_documents | length }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="card-plain p-4">
+            <h6 class="mb-3">Change Password</h6>
+
+            <form method="POST" action="{{ url_for('auth.profile') }}" novalidate>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="mb-3">
+                    <label for="current_password" class="form-label small">Current Password</label>
+                    <input type="password" class="form-control" id="current_password" name="current_password" required>
+                </div>
+                <div class="mb-3">
+                    <label for="new_password" class="form-label small">New Password</label>
+                    <input type="password" class="form-control" id="new_password" name="new_password" required minlength="6">
+                </div>
+                <div class="mb-3">
+                    <label for="confirm_new_password" class="form-label small">Confirm New Password</label>
+                    <input type="password" class="form-control" id="confirm_new_password" name="confirm_new_password" required minlength="6">
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-key"></i> Update Password
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

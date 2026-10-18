@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Generate Document Draft - LegalGPT{% endblock %}
+
+{% block page_title %}Generate Legal Document Draft{% endblock %}
+
+{% block content %}
+
+<div class="row">
+    <div class="col-lg-7">
+        <div class="card-plain p-4">
+            <h6 class="mb-3">Document Details</h6>
+
+            <div class="mb-3">
+                <label class="form-label small">Document Type</label>
+                <select class="form-select" id="documentType">
+                    {% for key, label in document_types.items() %}
+                    <option value="{{ key }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <form id="generateForm">
+                <!-- Legal Notice -->
+                <div class="doc-fields" data-type="legal_notice">
+                    <div class="mb-2"><label class="form-label small">Date</label><input type="date" class="form-control" name="date"></div>
+                    <div class="mb-2"><label class="form-label small">Recipient Name</label><input type="text" class="form-control" name="recipient_name"></div>
+                    <div class="mb-2"><label class="form-label small">Recipient Address</label><input type="text" class="form-control" name="recipient_address"></div>
+                    <div class="mb-2"><label class="form-label small">Subject</label><input type="text" class="form-control" name="subject"></div>
+                    <div class="mb-2"><label class="form-label small">Notice Body</label><textarea class="form-control" name="body" rows="4"></textarea></div>
+                    <div class="mb-2"><label class="form-label small">Sender Name</label><input type="text" class="form-control" name="sender_name"></div>
+                    <div class="mb-2"><label class="form-label small">Sender Address</label><input type="text" class="form-control" name="sender_address"></div>
+                </div>
+
+                <!-- NDA -->
+                <div class="doc-fields d-none" data-type="nda">
+                    <div class="mb-2"><label class="form-label small">Date</label><input type="date" class="form-control" name="date"></div>
+                    <div class="mb-2"><label class="form-label small">Disclosing Party</label><input type="text" class="form-control" name="party_one"></div>
+                    <div class="mb-2"><label class="form-label small">Receiving Party</label><input type="text" class="form-control" name="party_two"></div>
+                    <div class="mb-2"><label class="form-label small">Purpose of Disclosure</label><textarea class="form-control" name="purpose" rows="3"></textarea></div>
+                    <div class="mb-2"><label class="form-label small">Duration (e.g. 2 years)</label><input type="text" class="form-control" name="duration"></div>
+                </div>
+
+                <!-- Rental Agreement -->
+                <div class="doc-fields d-none" data-type="rental_agreement">
+                    <div class="mb-2"><label class="form-label small">Date</label><input type="date" class="form-control" name="date"></div>
+                    <div class="mb-2"><label class="form-label small">Landlord Name</label><input type="text" class="form-control" name="landlord_name"></div>
+                    <div class="mb-2"><label class="form-label small">Tenant Name</label><input type="text" class="form-control" name="tenant_name"></div>
+                    <div class="mb-2"><label class="form-label small">Property Address</label><input type="text" class="form-control" name="property_address"></div>
+                    <div class="mb-2"><label class="form-label small">Monthly Rent</label><input type="text" class="form-control" name="monthly_rent"></div>
+                    <div class="mb-2"><label class="form-label small">Security Deposit</label><input type="text" class="form-control" name="security_deposit"></div>
+                    <div class="mb-2"><label class="form-label small">Lease Start Date</label><input type="date" class="form-control" name="start_date"></div>
+                    <div class="mb-2"><label class="form-label small">Lease Duration</label><input type="text" class="form-control" name="duration"></div>
+                    <div class="mb-2"><label class="form-label small">Additional Terms</label><textarea class="form-control" name="terms" rows="3"></textarea></div>
+                </div>
+
+                <!-- Complaint Letter -->
+                <div class="doc-fields d-none" data-type="complaint_letter">
+                    <div class="mb-2"><label class="form-label small">Date</label><input type="date" class="form-control" name="date"></div>
+                    <div class="mb-2"><label class="form-label small">Recipient Name</label><input type="text" class="form-control" name="recipient_name"></div>
+                    <div class="mb-2"><label class="form-label small">Sender Name</label><input type="text" class="form-control" name="sender_name"></div>
+                    <div class="mb-2"><label class="form-label small">Subject</label><input type="text" class="form-control" name="subject"></div>
+                    <div class="mb-2"><label class="form-label small">Complaint Details</label><textarea class="form-control" name="body" rows="4"></textarea></div>
+                </div>
+
+                <!-- Affidavit -->
+                <div class="doc-fields d-none" data-type="affidavit">
+                    <div class="mb-2"><label class="form-label small">Deponent Name</label><input type="text" class="form-control" name="deponent_name"></div>
+                    <div class="mb-2"><label class="form-label small">Deponent Address</label><input type="text" class="form-control" name="deponent_address"></div>
+                    <div class="mb-2"><label class="form-label small">Declaration</label><textarea class="form-control" name="declaration" rows="4"></textarea></div>
+                    <div class="mb-2"><label class="form-label small">Date</label><input type="date" class="form-control" name="date"></div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 mt-2">
+                    <i class="bi bi-file-earmark-plus"></i> Generate Document
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card-plain p-4">
+            <h6 class="mb-3">Preview & Actions</h6>
+            <div id="generateResult" class="text-center text-muted py-5">
+                <i class="bi bi-file-earmark-text" style="font-size: 2.2rem;"></i>
+                <p class="mt-2 mb-0">Fill the form and click Generate to create your document.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Email Modal -->
+<div class="modal fade" id="emailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Email Document</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label small">Recipient Email</label>
+                <input type="email" class="form-control" id="emailRecipient" placeholder="name@example.com">
+                <div id="emailStatus" class="mt-3"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="sendEmailBtn">
+                    <i class="bi bi-send"></i> Send
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/generate.js') }}"></script>
+{% endblock %}

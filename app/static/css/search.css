@@ -1,0 +1,81 @@
+/**
+ * search.js
+ * Handles the advocate search page: fires filtered queries against
+ * /api/advocates and renders results using the card template.
+ */
+
+ document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("searchBtn").addEventListener("click", runSearch);
+    runSearch();
+});
+
+/**
+ * Reads the current filter values and fetches matching advocates.
+ */
+function runSearch() {
+    const city = document.getElementById("filterCity").value;
+    const specialization = document.getElementById("filterSpecialization").value;
+    const minExperience = document.getElementById("filterExperience").value;
+
+    const params = new URLSearchParams();
+    if (city) params.append("city", city);
+    if (specialization) params.append("specialization", specialization);
+    if (minExperience) params.append("min_experience", minExperience);
+
+    const resultsContainer = document.getElementById("advocateResults");
+    resultsContainer.innerHTML = `
+        <div class="col-12 text-center text-muted py-4">
+            <div class="spinner-border spinner-border-sm me-2"></div> Searching...
+        </div>`;
+
+    fetch(`/api/advocates?${params.toString()}`)
+        .then((res) => res.json())
+        .then((data) => {
+            if (data.success) {
+                renderResults(data.advocates);
+            } else {
+                resultsContainer.innerHTML = `<div class="col-12 text-danger">Failed to load results.</div>`;
+            }
+        })
+        .catch(() => {
+            resultsContainer.innerHTML = `<div class="col-12 text-danger">Failed to reach the server.</div>`;
+        });
+}
+
+/**
+ * Renders a list of advocate objects into cards using the page's <template>.
+ * @param {Array<Object>} advocates
+ */
+function renderResults(advocates) {
+    const resultsContainer = document.getElementById("advocateResults");
+    const countLabel = document.getElementById("resultsCount");
+    const template = document.getElementById("advocateCardTemplate");
+
+    resultsContainer.innerHTML = "";
+    countLabel.textContent = `${advocates.length} advocate${advocates.length === 1 ? "" : "s"} found`;
+
+    if (advocates.length === 0) {
+        resultsContainer.innerHTML = `
+            <div class="col-12 text-center text-muted py-5">
+                <i class="bi bi-person-x" style="font-size: 2rem;"></i>
+                <p class="mt-2 mb-0">No advocates match your filters.</p>
+            </div>`;
+        return;
+    }
+
+    advocates.forEach((adv) => {
+        const clone = template.content.cloneNode(true);
+        clone.querySelector(".advocate-name").textContent = adv.name;
+        clone.querySelector(".advocate-specialization").textContent = adv.specialization;
+        clone.querySelector(".advocate-city").textContent = adv.city;
+        clone.querySelector(".advocate-experience").textContent = adv.experience_years;
+        clone.querySelector(".advocate-rating").textContent = adv.rating.toFixed(1);
+        clone.querySelector(".advocate-phone").innerHTML = adv.phone
+            ? `<i class="bi bi-telephone"></i> ${adv.phone}`
+            : "";
+        clone.querySelector(".advocate-email").innerHTML = adv.email
+            ? `<i class="bi bi-envelope"></i> ${adv.email}`
+            : "";
+        resultsContainer.appendChild(clone);
+    });
+}

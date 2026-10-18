@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - LegalGPT{% endblock %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<div class="mb-4">
+    <h4 class="mb-1">Welcome back, {{ current_user.username }} 👋</h4>
+    <p class="text-muted mb-0">Here's an overview of your LegalGPT activity.</p>
+</div>
+
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-icon icon-blue"><i class="bi bi-file-earmark-arrow-up"></i></div>
+            <div class="stat-value">{{ document_count }}</div>
+            <div class="stat-label">Documents Uploaded</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-icon icon-green"><i class="bi bi-file-earmark-check"></i></div>
+            <div class="stat-value">{{ generated_count }}</div>
+            <div class="stat-label">Documents Generated</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-icon icon-purple"><i class="bi bi-chat-dots"></i></div>
+            <div class="stat-value">{{ chat_count }}</div>
+            <div class="stat-label">AI Chat Messages</div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <a href="{{ url_for('chat.chat_page') }}" class="card-plain d-block p-3 text-decoration-none text-dark">
+            <i class="bi bi-chat-dots-fill text-primary me-2"></i>
+            <strong>Ask AI about your documents</strong>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a href="{{ url_for('legal.generate_form') }}" class="card-plain d-block p-3 text-decoration-none text-dark">
+            <i class="bi bi-file-earmark-text-fill text-success me-2"></i>
+            <strong>Generate a legal document</strong>
+        </a>
+    </div>
+    <div class="col-md-4">
+        <a href="{{ url_for('legal.search_page') }}" class="card-plain d-block p-3 text-decoration-none text-dark">
+            <i class="bi bi-search text-warning me-2"></i>
+            <strong>Find an advocate</strong>
+        </a>
+    </div>
+</div>
+
+<!-- Recent Uploads -->
+<div class="card-plain p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0">Recent Uploads</h6>
+        <a href="{{ url_for('chat.chat_page') }}" class="small text-decoration-none">View all</a>
+    </div>
+
+    {% if recent_uploads %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr class="text-muted small">
+                    <th>Filename</th>
+                    <th>Type</th>
+                    <th>Chunks</th>
+                    <th>Status</th>
+                    <th>Uploaded</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for doc in recent_uploads %}
+                <tr>
+                    <td>
+                        <i class="bi bi-file-earmark-{{ 'pdf' if doc.file_type == 'pdf' else 'word' }} me-2"></i>
+                        {{ doc.original_filename }}
+                    </td>
+                    <td><span class="badge bg-secondary text-uppercase">{{ doc.file_type }}</span></td>
+                    <td>{{ doc.chunk_count }}</td>
+                    <td>
+                        {% if doc.processed %}
+                        <span class="badge bg-success">Processed</span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark">Pending</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-muted small">{{ doc.upload_date.strftime('%d %b %Y, %I:%M %p') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center text-muted py-5">
+        <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+        <p class="mt-2 mb-0">No documents uploaded yet.</p>
+        <a href="{{ url_for('chat.chat_page') }}" class="btn btn-sm btn-primary mt-3">
+            Upload your first document
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

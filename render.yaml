@@ -1,0 +1,99 @@
+# render.yaml
+#
+# Render Blueprint for LegalGPT.
+#
+# Deploy: push this repo to GitHub/GitLab, then in the Render dashboard
+# choose "New +" -> "Blueprint" and point it at this repo. Render will
+# read this file and provision the web service below automatically.
+#
+# Secrets (GROQ_API_KEY, MAIL_USERNAME, MAIL_PASSWORD) are marked
+# `sync: false`, so Render will prompt you to enter them in the
+# dashboard instead of storing them in this file / your repo.
+
+services:
+  - type: web
+    name: legalgpt
+    runtime: python
+    plan: free
+    region: oregon
+    branch: main
+    buildCommand: "pip install --upgrade pip && pip install -r requirements.txt && python scripts/prefetch_models.py"
+    startCommand: "gunicorn run:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120"
+    healthCheckPath: /login
+    envVars:
+      # --- Core Flask ---
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FLASK_DEBUG
+        value: "false"
+      - key: PYTHON_VERSION
+        value: "3.12.8"
+
+      # --- Groq (https://console.groq.com/keys) ---
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL_NAME
+        value: openai/gpt-oss-120b
+      - key: GROQ_TRANSLATION_MODEL_NAME
+        value: openai/gpt-oss-120b
+      - key: GROQ_FALLBACK_MODELS
+        value: "openai/gpt-oss-120b,qwen/qwen3.6-27b,openai/gpt-oss-20b"
+
+      # --- Database ---
+      # Unset => local SQLite file, wiped on every restart/redeploy
+      # (Free web services have an ephemeral filesystem). The 10 default
+      # advocates are re-seeded on each start, but users, uploads and any
+      # advocates added through the UI are lost. For persistence set
+      # DATABASE_URL (Render dashboard, sync:false) to a Postgres URL.
+      # Note: Render's own Free Postgres expires after 30 days; use a
+      # paid Render Postgres or an external Postgres for lasting data.
+      - key: DATABASE_URL
+        sync: false
+
+      # --- Models / OCR (kept inside the project so build-time downloads
+      # are present at runtime). Set OCR_LANGUAGE_GROUPS to "en" to cut
+      # memory on the 512MB free plan. ---
+      - key: OCR_LANGUAGE_GROUPS
+        value: "en,hi;en,te"
+      - key: SEED_ADVOCATES_ON_STARTUP
+        value: "true"
+
+      # --- Mail / SMTP (for emailing generated documents) ---
+      - key: MAIL_SERVER
+        value: smtp.gmail.com
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_DEFAULT_SENDER
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+
+      # --- Persistent storage paths (only meaningful if you attach the
+      # disk below; otherwise these fall back to in-app defaults under
+      # the ephemeral filesystem) ---
+      # - key: UPLOAD_FOLDER
+      #   value: /var/data/uploads
+      # - key: GENERATED_FOLDER
+      #   value: /var/data/generated_docs
+      # - key: CHROMA_DB_DIR
+      #   value: /var/data/chroma_db
+
+    # Uncomment to persist uploads/generated PDFs/ChromaDB and the SQLite
+    # file across deploys and restarts. Persistent disks require a paid
+    # Render plan (not available on the free plan).
+    # disk:
+    #   name: legalgpt-data
+    #   mountPath: /var/data
+    #   sizeGB: 1
+
+# Optional managed Postgres database, if you'd rather not rely on SQLite
+# in production. Uncomment this and the `fromDatabase` envVar above to
+# use it as DATABASE_URL.
+# databases:
+#   - name: legalgpt-db
+#     plan: free
+#     region: oregon

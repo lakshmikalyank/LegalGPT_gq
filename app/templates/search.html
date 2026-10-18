@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Advocate Search - LegalGPT{% endblock %}
+
+{% block page_title %}Advocate Search{% endblock %}
+
+{% block content %}
+
+<div class="card-plain p-4 mb-4">
+    <h6 class="mb-3">Find an Advocate</h6>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label small">City</label>
+            <select class="form-select" id="filterCity">
+                <option value="">All Cities</option>
+                {% for city in cities %}
+                <option value="{{ city }}">{{ city }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label small">Specialization</label>
+            <select class="form-select" id="filterSpecialization">
+                <option value="">All Specializations</option>
+                {% for spec in specializations %}
+                <option value="{{ spec }}">{{ spec }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label small">Minimum Experience (years)</label>
+            <input type="number" class="form-control" id="filterExperience" min="0" placeholder="e.g. 5">
+        </div>
+    </div>
+    <button class="btn btn-primary mt-3" id="searchBtn">
+        <i class="bi bi-search"></i> Search
+    </button>
+</div>
+
+<div id="resultsCount" class="text-muted small mb-3"></div>
+
+<div class="row g-3" id="advocateResults"></div>
+
+<template id="advocateCardTemplate">
+    <div class="col-md-4">
+        <div class="card-plain p-3 h-100">
+            <div class="d-flex align-items-center mb-2">
+                <div class="stat-icon icon-blue me-2" style="width:38px;height:38px;font-size:1rem;">
+                    <i class="bi bi-person-badge"></i>
+                </div>
+                <div>
+                    <div class="fw-semibold advocate-name"></div>
+                    <div class="text-muted small advocate-specialization"></div>
+                </div>
+            </div>
+            <div class="small text-muted mb-1"><i class="bi bi-geo-alt"></i> <span class="advocate-city"></span></div>
+            <div class="small text-muted mb-1"><i class="bi bi-briefcase"></i> <span class="advocate-experience"></span> years experience</div>
+            <div class="small text-muted mb-1"><i class="bi bi-star-fill text-warning"></i> <span class="advocate-rating"></span> / 5</div>
+            <hr class="my-2">
+            <div class="small advocate-phone"></div>
+            <div class="small advocate-email"></div>
+        </div>
+    </div>
+</template>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/search.js') }}"></script>
+{% endblock %}

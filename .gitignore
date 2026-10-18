@@ -1,0 +1,11 @@
+.env
+*.pyc
+__pycache__/
+venv/
+.venv/
+logs/
+uploads/
+generated_docs/
+chroma_db/
+model_cache/
+legalgpt.db

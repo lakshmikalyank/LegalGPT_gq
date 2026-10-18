@@ -1,0 +1,23 @@
+/* ==========================================================================
+   LegalGPT - Upload Dropzone Styles
+   (shared by the chat page and the document management page)
+   ========================================================================== */
+
+   .upload-dropzone {
+    border: 2px dashed #d1d5db;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.upload-dropzone:hover,
+.upload-dropzone.dragover {
+    border-color: var(--sidebar-accent);
+    background-color: #eef2ff;
+}
+
+.upload-dropzone i {
+    color: var(--sidebar-accent);
+}

@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Panel - LegalGPT{% endblock %}
+
+{% block page_title %}Admin Panel{% endblock %}
+
+{% block content %}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon icon-blue"><i class="bi bi-people-fill"></i></div>
+            <div class="stat-value">{{ total_users }}</div>
+            <div class="stat-label">Total Users</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon icon-green"><i class="bi bi-file-earmark-arrow-up"></i></div>
+            <div class="stat-value">{{ total_documents }}</div>
+            <div class="stat-label">Uploaded Documents</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon icon-purple"><i class="bi bi-file-earmark-check"></i></div>
+            <div class="stat-value">{{ total_generated }}</div>
+            <div class="stat-label">Generated PDFs</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon icon-orange"><i class="bi bi-chat-dots"></i></div>
+            <div class="stat-value">{{ total_chats }}</div>
+            <div class="stat-label">Chat Messages</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Users -->
+    <div class="col-lg-5">
+        <div class="card-plain p-4">
+            <h6 class="mb-3">Users</h6>
+            {% if all_users %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr class="text-muted small">
+                            <th>Username</th>
+                            <th>Role</th>
+                            <th>Joined</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        {% for user in all_users %}
+                        <tr id="user-row-{{ user.id }}">
+                            <td>
+                                {{ user.username }}
+                                <div class="text-muted small">{{ user.email }}</div>
+                            </td>
+                            <td>
+                                <span class="badge {{ 'bg-danger' if user.is_admin else 'bg-secondary' }} user-role-badge">
+                                    {{ 'Admin' if user.is_admin else 'User' }}
+                                </span>
+                            </td>
+                            <td class="text-muted small">{{ user.created_at.strftime('%d %b %Y') }}</td>
+                            <td class="text-end">
+                                {% if user.id != current_user.id %}
+                                <button class="btn btn-sm btn-outline-secondary toggle-role-btn"
+                                        data-user-id="{{ user.id }}" title="Toggle admin role">
+                                    <i class="bi bi-person-gear"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger delete-user-btn"
+                                        data-user-id="{{ user.id }}" title="Delete user">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                {% else %}
+                                <span class="text-muted small">(you)</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted small mb-0">No users found.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Global Chat History -->
+    <div class="col-lg-7">
+        <div class="card-plain p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0">Recent Chat Activity (All Users)</h6>
+                <button class="btn btn-sm btn-outline-primary" id="refreshChatBtn">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+            </div>
+            <div id="adminChatHistory" style="max-height: 420px; overflow-y: auto;">
+                <div class="text-center text-muted py-4">
+                    <div class="spinner-border spinner-border-sm me-2"></div> Loading chat history...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mt-1">
+    <div class="col-12">
+        <div class="card-plain p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0">Advocate Directory</h6>
+                <button class="btn btn-sm btn-primary" id="addAdvocateBtn" data-bs-toggle="modal" data-bs-target="#advocateModal">
+                    <i class="bi bi-plus-lg"></i> Add Advocate
+                </button>
+            </div>
+
+            {% if all_advocates %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr class="text-muted small">
+                            <th>Name</th>
+                            <th>City</th>
+                            <th>Specialization</th>
+                            <th>Experience</th>
+                            <th>Rating</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="advocatesTableBody">
+                        {% for adv in all_advocates %}
+                        <tr id="advocate-row-{{ adv.id }}"
+                            data-name="{{ adv.name }}" data-city="{{ adv.city }}"
+                            data-specialization="{{ adv.specialization }}"
+                            data-experience="{{ adv.experience_years }}"
+                            data-phone="{{ adv.phone or '' }}" data-email="{{ adv.email or '' }}"
+                            data-rating="{{ adv.rating }}">
+                            <td>{{ adv.name }}</td>
+                            <td>{{ adv.city }}</td>
+                            <td>{{ adv.specialization }}</td>
+                            <td>{{ adv.experience_years }} yrs</td>
+                            <td>{{ adv.rating }}</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-secondary edit-advocate-btn"
+                                        data-advocate-id="{{ adv.id }}" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger delete-advocate-btn"
+                                        data-advocate-id="{{ adv.id }}" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted small mb-0">No advocates in the directory yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Add / Edit Advocate Modal -->
+<div class="modal fade" id="advocateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="advocateModalTitle">Add Advocate</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="advocateForm">
+                <div class="modal-body">
+                    <input type="hidden" id="advocateId" value="">
+                    <div class="mb-2">
+                        <label class="form-label small">Name</label>
+                        <input type="text" class="form-control" id="advocateName" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-2">
+                            <label class="form-label small">City</label>
+                            <input type="text" class="form-control" id="advocateCity" required>
+                        </div>
+                        <div class="col-6 mb-2">
+                            <label class="form-label small">Specialization</label>
+                            <input type="text" class="form-control" id="advocateSpecialization" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-2">
+                            <label class="form-label small">Experience (years)</label>
+                            <input type="number" class="form-control" id="advocateExperience" min="0" value="0">
+                        </div>
+                        <div class="col-6 mb-2">
+                            <label class="form-label small">Rating (0-5)</label>
+                            <input type="number" class="form-control" id="advocateRating" min="0" max="5" step="0.1" value="0">
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Phone</label>
+                        <input type="text" class="form-control" id="advocatePhone">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">Email</label>
+                        <input type="email" class="form-control" id="advocateEmail">
+                    </div>
+                    <div id="advocateFormStatus"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}AI Chat - LegalGPT{% endblock %}
+
+{% block page_title %}AI Chat{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/chat.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/upload.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/analyze.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/summary.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<div class="chat-layout">
+
+    <!-- Document Sidebar -->
+    <div class="chat-doc-sidebar">
+        <button class="btn btn-primary btn-sm w-100 mb-3" data-bs-toggle="modal" data-bs-target="#uploadModal">
+            <i class="bi bi-upload"></i> Upload Document
+        </button>
+
+        <div class="chat-doc-item {{ 'active' if not documents }}" id="doc-all" data-doc-id="">
+            <i class="bi bi-collection"></i> All Documents
+        </div>
+
+        <hr class="my-2">
+
+        <div id="documentList">
+            {% for doc in documents %}
+            <div class="chat-doc-item" data-doc-id="{{ doc.id }}" id="doc-{{ doc.id }}">
+                <i class="bi bi-file-earmark-{{ 'pdf' if doc.file_type == 'pdf' else 'word' }}"></i>
+                <span class="text-truncate" style="max-width: 150px;" title="{{ doc.original_filename }}">
+                    {{ doc.original_filename }}
+                </span>
+                <i class="bi bi-clipboard2-pulse text-primary ms-auto analyze-doc-btn" data-doc-id="{{ doc.id }}"
+                   style="font-size: 0.85rem;" title="Analyze document"></i>
+                <i class="bi bi-lightning-charge text-warning generate-summary-btn" data-doc-id="{{ doc.id }}"
+                   style="font-size: 0.85rem;" title="Generate summary"></i>
+                <i class="bi bi-trash text-danger delete-doc-btn" data-doc-id="{{ doc.id }}"
+                   style="font-size: 0.8rem;" title="Delete document"></i>
+            </div>
+            {% else %}
+            <p class="text-muted small text-center mt-3">No documents yet. Upload one to get started.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Chat Window -->
+    <div class="chat-window">
+        <div class="chat-window-header">
+            <span class="chat-window-title"><i class="bi bi-chat-dots"></i> Conversation</span>
+            <button class="btn btn-sm btn-outline-secondary" id="clearChatBtn" title="Clear chat history">
+                <i class="bi bi-trash3"></i> Clear Chat
+            </button>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="text-center text-muted py-5" id="chatEmptyState">
+                <i class="bi bi-robot" style="font-size: 2.2rem;"></i>
+                <p class="mt-2 mb-0">Ask me anything about your uploaded documents.</p>
+            </div>
+        </div>
+
+        <div class="chat-input-area">
+            <input type="text" class="form-control" id="chatInput"
+                   placeholder="Type your question here..." autocomplete="off">
+            <button class="btn btn-primary" id="sendBtn">
+                <i class="bi bi-send-fill"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Upload Document</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="upload-dropzone" id="dropzone">
+                    <i class="bi bi-cloud-arrow-up" style="font-size: 2rem; color: var(--sidebar-accent);"></i>
+                    <p class="mb-1 mt-2">Click to browse or drag a file here</p>
+                    <p class="text-muted small mb-0">PDF, DOCX or JPG, up to 16MB</p>
+                    <input type="file" id="fileInput" accept=".pdf,.docx,.jpg,.jpeg,.png" hidden>
+                </div>
+                <div id="uploadStatus" class="mt-3"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Document Analysis Modal -->
+<div class="modal fade" id="analysisModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-clipboard2-pulse"></i> Document Analysis
+                </h5>
+                <div class="ms-auto me-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="readAloudBtn" title="Read aloud">
+                        <i class="bi bi-volume-up"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="stopReadingBtn" title="Stop reading">
+                        <i class="bi bi-stop-fill"></i>
+                    </button>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-center align-items-center gap-2 mb-3 flex-wrap">
+                    <div class="btn-group btn-group-sm" role="group" id="analysisModeToggle">
+                        <button type="button" class="btn btn-outline-primary" data-mode="summary">
+                            <i class="bi bi-file-text"></i> Summary
+                        </button>
+                        <button type="button" class="btn btn-outline-primary active" data-mode="full">
+                            <i class="bi bi-clipboard2-pulse"></i> Full Analysis
+                        </button>
+                    </div>
+                    <select class="form-select form-select-sm" id="analysisLanguageSelect" style="width: auto;">
+                        <option value="en" selected>English</option>
+                        <option value="hi">Hindi (हिन्दी)</option>
+                        <option value="ta">Tamil (தமிழ்)</option>
+                        <option value="te">Telugu (తెలుగు)</option>
+                        <option value="kn">Kannada (ಕನ್ನಡ)</option>
+                        <option value="bn">Bengali (বাংলা)</option>
+                        <option value="mr">Marathi (मराठी)</option>
+                        <option value="gu">Gujarati (ગુજરાતી)</option>
+                        <option value="ml">Malayalam (മലയാളം)</option>
+                        <option value="pa">Punjabi (ਪੰਜਾਬੀ)</option>
+                        <option value="ur">Urdu (اردو)</option>
+                    </select>
+                </div>
+                <div id="analysisLoading" class="text-center text-muted py-5 d-none">
+                    <div class="spinner-border spinner-border-sm me-2"></div>
+                    Analyzing document... this may take a moment.
+                </div>
+                <div id="analysisError" class="text-center text-danger py-4 d-none"></div>
+                <div id="analysisResults" class="d-none"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Summary Modal (lightweight, separate from full Document Analysis) -->
+<div class="modal fade" id="summaryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-lightning-charge text-warning"></i> Simple Summary
+                </h5>
+                <div class="ms-auto me-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="summaryPlayBtn" title="Play summary">
+                        <i class="bi bi-play-fill"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="summaryStopBtn" title="Stop reading">
+                        <i class="bi bi-stop-fill"></i>
+                    </button>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-center mb-3">
+                    <select class="form-select form-select-sm" id="summaryLanguageSelect" style="width: auto;">
+                        <option value="en" selected>English</option>
+                        <option value="te">Telugu (తెలుగు)</option>
+                        <option value="hi">Hindi (हिन्दी)</option>
+                        <option value="ta">Tamil (தமிழ்)</option>
+                    </select>
+                </div>
+                <div id="summaryLoading" class="text-center text-muted py-4 d-none">
+                    <div class="spinner-border spinner-border-sm me-2"></div>
+                    Generating summary...
+                </div>
+                <div id="summaryError" class="text-center text-danger py-4 d-none"></div>
+                <div id="summaryResult" class="d-none">
+                    <p id="summaryText" class="mb-0"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+<script src="{{ url_for('static', filename='js/analyze.js') }}"></script>
+<script src="{{ url_for('static', filename='js/summary.js') }}"></script>
+{% endblock %}
