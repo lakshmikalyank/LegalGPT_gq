@@ -17,18 +17,18 @@ def main():
         print("Embedding model ready.")
     except Exception as exc:
         print(f"WARNING: embedding model prefetch skipped: {exc}")
-    try:
-        import easyocr
+    if Config.OCR_BACKEND == "easyocr":
+        try:
+            import easyocr
 
-        for langs in Config.OCR_LANGUAGE_GROUPS:
-            easyocr.Reader(
-                langs, gpu=False,
-                model_storage_directory=os.path.join(Config.MODEL_CACHE_DIR, "easyocr"),
-            )
-        print("OCR models ready.")
-    except Exception as exc:
-        print(f"WARNING: OCR model prefetch skipped: {exc}")
-
+            for langs in Config.OCR_LANGUAGE_GROUPS:
+                easyocr.Reader(
+                    langs, gpu=False,
+                    model_storage_directory=os.path.join(Config.MODEL_CACHE_DIR, "easyocr"),
+                )
+            print("OCR models ready.")
+        except Exception as exc:
+            print(f"WARNING: OCR model prefetch skipped: {exc}")
 
 if __name__ == "__main__":
     main()

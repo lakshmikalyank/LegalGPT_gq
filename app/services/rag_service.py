@@ -450,8 +450,66 @@ def _extract_text_from_scanned_pdf(file_path):
     return "\n".join(text_parts)
 
 
+def _ocr_with_groq_vision(image_bytes):
+    """
+    Transcribe text from an image with a Groq-hosted vision model.
+    Uses no local ML models, so it adds almost no memory (unlike EasyOCR,
+    which exceeded Render's 512MB limit). The image is sent to Groq.
+    """
+    if not Config.GROQ_API_KEY:
+        raise DocumentExtractionError(
+            "Image text recognition needs GROQ_API_KEY, which is not set on the server."
+        )
+    import base64
+
+    from PIL import Image
+
+    with Image.open(io.BytesIO(image_bytes)) as img:
+        buf = io.BytesIO()
+        img.convert("RGB").save(buf, format="JPEG", quality=85)
+    data_url = "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()
+
+    try:
+        from groq import Groq
+
+        client = Groq(api_key=Config.GROQ_API_KEY, timeout=60)
+        response = client.chat.completions.create(
+            model=Config.GROQ_VISION_MODEL,
+            temperature=0,
+            max_tokens=2048,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": (
+                        "Transcribe ALL text visible in this image exactly as written, "
+                        "preserving the original language and line breaks. Output only "
+                        "the transcribed text. If there is no readable text, output "
+                        "exactly: NO_TEXT"
+                    )},
+                    {"type": "image_url", "image_url": {"url": data_url}},
+                ],
+            }],
+        )
+    except Exception as exc:
+        logger.exception("Groq vision OCR failed")
+        raise DocumentExtractionError(
+            "Image text recognition failed (Groq vision request error). Check "
+            "GROQ_API_KEY and that GROQ_VISION_MODEL is a currently available "
+            "vision model."
+        ) from exc
+
+    text = (response.choices[0].message.content or "").strip()
+    # Some reasoning models prepend <think>...</think>
+    if "</think>" in text:
+        text = text.split("</think>", 1)[1].strip()
+    return "" if text == "NO_TEXT" else text
+
+
 def _ocr_image_bytes(image_bytes):
-    """Run both OCR language readers on raw image bytes and merge results."""
+    """Run OCR on raw image bytes using the configured backend."""
+    if Config.OCR_BACKEND == "groq":
+        return _ocr_with_groq_vision(image_bytes)
+    # Optional local backend (needs `pip install easyocr`; ~1GB+ RAM).
     text = []
     for langs in Config.OCR_LANGUAGE_GROUPS:
         text.extend(_get_ocr_reader(langs).readtext(image_bytes, detail=0))

@@ -35,7 +35,10 @@ pymupdf==1.24.14
 # multiple GB, far too large for Render's build/runtime limits).
 --extra-index-url https://download.pytorch.org/whl/cpu
 torch==2.7.1
-easyocr==1.7.2
+# EasyOCR removed: it exceeded Render free-tier memory. OCR now uses a
+# Groq vision model (OCR_BACKEND=groq). To use local OCR: pip install easyocr
+# and set OCR_BACKEND=easyocr.
+groq
 Pillow==11.1.0
 
 # --- Testing ---

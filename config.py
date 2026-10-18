@@ -116,8 +116,13 @@ class Config:
 
     MODEL_CACHE_DIR = MODEL_CACHE_DIR
 
+    # OCR backend: "groq" (default; Groq vision model, no local ML memory)
+    # or "easyocr" (optional local backend; requires installing easyocr).
+    OCR_BACKEND = os.environ.get("OCR_BACKEND", "groq").lower()
+    GROQ_VISION_MODEL = os.environ.get("GROQ_VISION_MODEL", "qwen/qwen3.6-27b")
+
     # Safeguards for OCR (images and scanned PDFs)
-    OCR_MAX_PDF_PAGES = int(os.environ.get("OCR_MAX_PDF_PAGES", 10))
+    OCR_MAX_PDF_PAGES = int(os.environ.get("OCR_MAX_PDF_PAGES", 5))
     OCR_MAX_IMAGE_PIXELS = 25_000_000  # reject absurdly large images
     OCR_MAX_IMAGE_SIDE = 2400  # downscale larger images before OCR
     # EasyOCR language groups, ";"-separated, each a ","-separated list.

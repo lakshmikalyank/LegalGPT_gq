@@ -53,8 +53,10 @@ services:
       # --- Models / OCR (kept inside the project so build-time downloads
       # are present at runtime). Set OCR_LANGUAGE_GROUPS to "en" to cut
       # memory on the 512MB free plan. ---
-      - key: OCR_LANGUAGE_GROUPS
-        value: "en,hi;en,te"
+      - key: OCR_BACKEND
+        value: "groq"
+      - key: GROQ_VISION_MODEL
+        value: "qwen/qwen3.6-27b"
       - key: SEED_ADVOCATES_ON_STARTUP
         value: "true"
 
